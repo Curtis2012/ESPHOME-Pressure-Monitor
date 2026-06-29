@@ -1,0 +1,134 @@
+substitutions:
+  device_name: water-pressure-monitor
+  friendly_name: Water Pressure Monitor
+
+  # Hardware
+  pressure_pin: A0
+  update_interval: 5s
+  sensor_max_psi: "100.0"
+
+  # MQTT
+  mqtt_topic_prefix: water_pressure_monitor
+
+  # Initial calibration defaults (runtime adjustable from Home Assistant)
+  # For a typical 0.5V-4.5V, 0-100 PSI transducer: 100 / (4.5 - 0.5) = 25 PSI/V
+  init_zero_voltage: "0.50"
+  init_psi_per_volt: "25.0"
+  init_pressure_offset: "0.0"
+  init_pressure_scale: "1.0"
+
+esphome:
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+
+esp8266:
+  board: nodemcuv2
+
+logger:
+
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret ssid
+  password: !secret password
+
+# MQTT only. No native Home Assistant API block.
+mqtt:
+  broker: !secret mqtt_broker
+  topic_prefix: ${mqtt_topic_prefix}
+  discovery: true
+  discovery_retain: true
+  birth_message:
+    topic: ${mqtt_topic_prefix}/status
+    payload: online
+  will_message:
+    topic: ${mqtt_topic_prefix}/status
+    payload: offline
+
+number:
+  # Calibration controls are published through MQTT discovery into Home Assistant.
+  - platform: template
+    id: zero_voltage
+    name: "${friendly_name} Zero Voltage"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: -1.0
+    max_value: 5.0
+    step: 0.001
+    initial_value: ${init_zero_voltage}
+    mode: box
+
+  - platform: template
+    id: psi_per_volt
+    name: "${friendly_name} PSI Per Volt"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 0.0
+    max_value: 200.0
+    step: 0.01
+    initial_value: ${init_psi_per_volt}
+    mode: box
+
+  - platform: template
+    id: pressure_offset
+    name: "${friendly_name} Pressure Offset"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: -100.0
+    max_value: 100.0
+    step: 0.01
+    initial_value: ${init_pressure_offset}
+    mode: box
+
+  - platform: template
+    id: pressure_scale
+    name: "${friendly_name} Pressure Scale"
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 0.1
+    max_value: 10.0
+    step: 0.001
+    initial_value: ${init_pressure_scale}
+    mode: box
+
+sensor:
+  - platform: adc
+    id: pressure_voltage
+    name: "${friendly_name} Pressure Voltage"
+    pin: ${pressure_pin}
+    update_interval: ${update_interval}
+    unit_of_measurement: V
+    accuracy_decimals: 3
+    filters:
+      - median:
+          window_size: 7
+          send_every: 1
+          send_first_at: 1
+
+  - platform: template
+    id: water_pressure_psi
+    name: "${friendly_name} Pressure"
+    unit_of_measurement: psi
+    device_class: pressure
+    state_class: measurement
+    accuracy_decimals: 2
+    update_interval: ${update_interval}
+    lambda: |-
+      float psi = (id(pressure_voltage).state - id(zero_voltage).state) * id(psi_per_volt).state;
+      psi = psi * id(pressure_scale).state + id(pressure_offset).state;
+      if (psi < 0.0f) psi = 0.0f;
+      if (psi > ${sensor_max_psi}) psi = ${sensor_max_psi};
+      return psi;
+
+binary_sensor:
+  - platform: status
+    name: "${friendly_name} Status"
+
+button:
+  - platform: restart
+    name: "${friendly_name} Restart"

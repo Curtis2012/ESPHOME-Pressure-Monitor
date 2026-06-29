@@ -1,0 +1,17 @@
+# ESPHome generated files
+.secrets.yaml
+secrets.yaml
+.storage/
+.build/
+.esphome/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
