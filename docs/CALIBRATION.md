@@ -30,3 +30,12 @@ If your sensor range is 0-100 psi, then:
 - Keep `Pressure Scale` at 1.0 unless you need proportional correction.
 - Avoid over-correcting with both slope and scale at the same time.
 - Recheck calibration at low and high pressure points.
+
+## Example Calibration
+
+If a gauge shows 70 PSI while Home Assistant shows 83.86 PSI, use:
+
+- pressure_scale = 70 / 83.86 = 0.835
+- new pressure_scale = 6.967 × 0.835 = 5.816
+
+That correction is proportional, so it is the right first adjustment when the error tracks the entire range.

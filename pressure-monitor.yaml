@@ -15,11 +15,22 @@ substitutions:
   init_zero_voltage: "0.50"
   init_psi_per_volt: "25.0"
   init_pressure_offset: "0.0"
-  init_pressure_scale: "1.0"
+  # Calibrated from 70 PSI gauge reading / 83.86 PSI published reading.
+  init_pressure_scale: "5.816"
 
 esphome:
   name: ${device_name}
   friendly_name: ${friendly_name}
+  on_boot:
+    priority: -100.0
+    then:
+      - if:
+          condition:
+            lambda: 'return id(pressure_scale).state == 6.967f;'
+          then:
+            - number.set:
+                id: pressure_scale
+                value: 5.816
 
 esp8266:
   board: nodemcuv2
