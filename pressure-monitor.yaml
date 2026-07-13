@@ -1,6 +1,6 @@
 substitutions:
-  device_name: water-pressure-monitor
-  friendly_name: Water Pressure Monitor
+  device_name: water-pressure-monitor-house
+  friendly_name: Water Pressure Monitor House
 
   # Hardware
   pressure_pin: A0
@@ -8,11 +8,11 @@ substitutions:
   sensor_max_psi: "100.0"
 
   # MQTT
-  mqtt_topic_prefix: water_pressure_monitor
+  mqtt_topic_prefix: water_pressure_monitor_house
 
   # Initial calibration defaults (runtime adjustable from Home Assistant)
   # For a typical 0.5V-4.5V, 0-100 PSI transducer: 100 / (4.5 - 0.5) = 25 PSI/V
-  init_zero_voltage: "0.50"
+  init_zero_voltage: "0.171"
   init_psi_per_volt: "25.0"
   init_pressure_offset: "0.0"
   # Calibrated from 70 PSI gauge reading / 83.86 PSI published reading.
@@ -24,6 +24,13 @@ esphome:
   on_boot:
     priority: -100.0
     then:
+      - if:
+          condition:
+            lambda: 'return id(zero_voltage).state == 0.50f;'
+          then:
+            - number.set:
+                id: zero_voltage
+                value: 0.171
       - if:
           condition:
             lambda: 'return id(pressure_scale).state == 6.967f;'
