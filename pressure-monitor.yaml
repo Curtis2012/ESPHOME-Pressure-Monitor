@@ -15,8 +15,8 @@ substitutions:
   init_zero_voltage: "0.171"
   init_psi_per_volt: "25.0"
   init_pressure_offset: "0.0"
-  # Calibrated from 70 PSI gauge reading / 83.86 PSI published reading.
-  init_pressure_scale: "5.816"
+  # Calibrated from 45 PSI gauge reading / 66.86 PSI published reading.
+  init_pressure_scale: "3.913"
 
 esphome:
   name: ${device_name}
@@ -33,16 +33,31 @@ esphome:
                 value: 0.171
       - if:
           condition:
-            lambda: 'return id(pressure_scale).state == 6.967f;'
+            lambda: 'return fabsf(id(pressure_scale).state - 6.967f) < 0.001f || fabsf(id(pressure_scale).state - 5.816f) < 0.001f;'
           then:
             - number.set:
                 id: pressure_scale
-                value: 5.816
+                value: 3.913
 
 esp8266:
   board: nodemcuv2
 
 logger:
+
+output:
+  - platform: gpio
+    id: onboard_led
+    pin:
+      number: GPIO2
+      inverted: true
+
+script:
+  - id: blink_activity_led
+    mode: restart
+    then:
+      - output.turn_on: onboard_led
+      - delay: 120ms
+      - output.turn_off: onboard_led
 
 ota:
   - platform: esphome
@@ -120,6 +135,9 @@ sensor:
     name: "${friendly_name} Pressure Voltage"
     pin: ${pressure_pin}
     update_interval: ${update_interval}
+    on_value:
+      then:
+        - script.execute: blink_activity_led
     unit_of_measurement: V
     accuracy_decimals: 3
     filters:
@@ -136,6 +154,9 @@ sensor:
     state_class: measurement
     accuracy_decimals: 2
     update_interval: ${update_interval}
+    on_value:
+      then:
+        - script.execute: blink_activity_led
     lambda: |-
       float psi = (id(pressure_voltage).state - id(zero_voltage).state) * id(psi_per_volt).state;
       psi = psi * id(pressure_scale).state + id(pressure_offset).state;
