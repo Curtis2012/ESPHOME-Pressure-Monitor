@@ -13,10 +13,6 @@ port = int(secrets.get("mqtt_port", 1883) or 1883)
 username = str(secrets.get("mqtt_username", "") or "").strip()
 password = str(secrets.get("mqtt_password", "") or "").strip()
 
-# ESP8266 resolves .local on this network, but this host may not.
-if broker.endswith(".local"):
-    broker = "192.168.0.237"
-
 pressure_topic = "water_pressure_monitor/sensor/water_pressure_monitor_pressure/state"
 voltage_topic = "water_pressure_monitor/sensor/water_pressure_monitor_pressure_voltage/state"
 status_topic = "water_pressure_monitor/status"
